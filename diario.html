@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lista de Itens</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #ece9e6, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #333;
+      color: #f0f0f0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: inherit;
+    }
+
+    .form-container, .buttons-footer {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .form-container input {
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-container button,
+    .buttons-footer button {
+      padding: 12px;
+      font-weight: bold;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .form-container button:hover,
+    .buttons-footer button:hover {
+      opacity: 0.9;
+    }
+
+    ul {
+      width: 100%;
+      max-width: 500px;
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li {
+      background-color: #f5f5f5;
+      margin: 5px 0;
+      padding: 12px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .total {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 15px;
+      color: inherit;
+    }
+
+    .buttons-footer button.clear-btn {
+      background-color: #f44336;
+    }
+
+    .buttons-footer button.darkmode-btn {
+      background-color: #555;
+    }
+
+    .buttons-footer button.share-btn {
+      background-color: #25D366;
+    }
+
+    .search-container {
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 10px;
+      display: flex;
+    }
+
+    .search-container input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px 0 0 10px;
+      border: 1px solid #ccc;
+    }
+
+    .search-container button {
+      padding: 12px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 0 10px 10px 0;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .form-container, .buttons-footer, ul, .search-container {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Controle de Itens</h1>
+
+  <div class="form-container">
+    <input type="text" id="itemNome" placeholder="Item">
+    <input type="number" id="itemValor" placeholder="Valor do Item" step="0.01">
+    <button id="adicionarBtn"><i class="fa fa-plus"></i> Adicionar</button>
+  </div>
+
+  <div class="search-container">
+    <input type="text" id="pesquisarInput" placeholder="Pesquisar item">
+    <button id="pesquisarBtn"><i class="fa fa-search"></i></button>
+  </div>
+
+  <ul id="listaItens"></ul>
+  <div class="total" id="total">Total: R$ 0,00</div>
+
+  <div class="buttons-footer">
+    <button class="clear-btn" id="limparBtn"><i class="fa fa-trash"></i> Limpar Lista</button>
+    <button class="darkmode-btn" id="temaBtn"><i class="fa fa-moon"></i> Tema Escuro</button>
+    <button class="share-btn" id="compartilharBtn"><i class="fa-brands fa-whatsapp"></i> Compartilhar WhatsApp</button>
+  </div>
+
+  <script>
+    const listaItens = document.getElementById('listaItens');
+    const totalDisplay = document.getElementById('total');
+    const temaBtn = document.getElementById('temaBtn');
+    const pesquisarInput = document.getElementById('pesquisarInput');
+    let itens = [];
+    let temaEscuro = false;
+
+    function salvarNoLocalStorage() {
+      localStorage.setItem('itensLista', JSON.stringify(itens));
+    }
+
+    function carregarDoLocalStorage() {
+      const dados = localStorage.getItem('itensLista');
+      if (dados) {
+        itens = JSON.parse(dados);
+        atualizarLista();
+      }
+    }
+
+    function formatarMoeda(valor) {
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function getDataAtual() {
+      const hoje = new Date();
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const ano = hoje.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    function atualizarLista() {
+      listaItens.innerHTML = '';
+      let total = 0;
+      const filtro = pesquisarInput.value.toLowerCase();
+
+      itens.forEach((item, index) => {
+        if (!item.nome.toLowerCase().includes(filtro)) return;
+
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${item.data} - ${item.nome}</span><span>${formatarMoeda(item.valor)}</span>`;
+        li.onclick = () => editarItem(index);
+        listaItens.appendChild(li);
+        total += item.valor;
+      });
+
+      totalDisplay.textContent = `Total: ${formatarMoeda(total)}`;
+      salvarNoLocalStorage();
+    }
+
+    function adicionarItem() {
+      const nome = document.getElementById('itemNome').value.trim();
+      const valor = parseFloat(document.getElementById('itemValor').value);
+      const data = getDataAtual();
+
+      if (!nome || isNaN(valor)) {
+        alert('Preencha o nome do item e o valor corretamente.');
+        return;
+      }
+
+      itens.push({ nome, valor, data });
+      atualizarLista();
+
+      document.getElementById('itemNome').value = '';
+      document.getElementById('itemValor').value = '';
+    }
+
+    function limparLista() {
+      if (confirm('Tem certeza que deseja limpar a lista?')) {
+        itens = [];
+        atualizarLista();
+      }
+    }
+
+    function editarItem(index) {
+      const novoNome = prompt('Novo nome do item:', itens[index].nome);
+      const novoValor = prompt('Novo valor do item:', itens[index].valor);
+
+      if (novoNome && !isNaN(parseFloat(novoValor))) {
+        itens[index].nome = novoNome;
+        itens[index].valor = parseFloat(novoValor);
+        atualizarLista();
+      } else {
+        alert('Valores inválidos. Nenhuma alteração foi feita.');
+      }
+    }
+
+    function alternarTema() {
+      temaEscuro = !temaEscuro;
+      document.body.classList.toggle('dark', temaEscuro);
+      temaBtn.innerHTML = temaEscuro
+        ? '<i class="fa fa-sun"></i> Tema Claro'
+        : '<i class="fa fa-moon"></i> Tema Escuro';
+    }
+
+    function compartilharLista() {
+      if (itens.length === 0) {
+        alert('A lista está vazia.');
+        return;
+      }
+
+      const texto = itens.map(item => `${item.data} - ${item.nome}: ${formatarMoeda(item.valor)}`).join('\n');
+      const url = `https://wa.me/?text=${encodeURIComponent(texto + '\nTotal: ' + totalDisplay.textContent)}`;
+
+      window.open(url, '_blank');
+    }
+
+    document.getElementById('adicionarBtn').addEventListener('click', adicionarItem);
+    document.getElementById('limparBtn').addEventListener('click', limparLista);
+    temaBtn.addEventListener('click', alternarTema);
+    document.getElementById('compartilharBtn').addEventListener('click', compartilharLista);
+    document.getElementById('pesquisarBtn').addEventListener('click', atualizarLista);
+    pesquisarInput.addEventListener('input', atualizarLista);
+
+    window.onload = carregarDoLocalStorage;
+  </script>
+
+</body>
+</html>

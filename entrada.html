@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Itens</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f2f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .money-icon {
+            text-align: center;
+            font-size: 40px;
+            color: #4CAF50;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        label {
+            font-size: 14px;
+            margin-top: 10px;
+            display: block;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #eee;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .item-buttons button {
+            background: #2196F3;
+            margin-left: 5px;
+            flex: none;
+            width: auto;
+            padding: 5px 10px;
+        }
+        .delete-button {
+            background: #f44336;
+        }
+        .total {
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: right;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 300px;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #333;
+        }
+        @media (max-width: 600px) {
+            li {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="money-icon"><i class="fas fa-money-bill-wave"></i></div>
+        <h1>Lista de Itens</h1>
+        <label for="nomeItem">Nome do Item</label>
+        <input type="text" id="nomeItem" placeholder="Nome do Item">
+        <label for="valor">Valor (R$)</label>
+        <input type="number" id="valor" placeholder="Valor (R$)" step="0.01">
+        <button onclick="adicionarItem()"><i class="fa fa-check"></i> OK</button>
+        <label for="filtro">Buscar Item</label>
+        <input type="text" id="filtro" placeholder="Digite para filtrar..." oninput="renderizarLista()">
+        <ul id="lista"></ul>
+        <div class="total" id="total"></div>
+        <button onclick="compartilharWhatsApp()"><i class="fab fa-whatsapp"></i> Compartilhar via WhatsApp</button>
+        <button onclick="limparLista()" style="background:#f44336;"><i class="fa fa-trash"></i> Limpar Lista</button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modalEdicao">
+        <div class="modal-content">
+            <span class="close-btn" onclick="fecharModal()">&times;</span>
+            <h3>Editar Item</h3>
+            <label for="editNome">Nome</label>
+            <input type="text" id="editNome">
+            <label for="editValor">Valor (R$)</label>
+            <input type="number" id="editValor" step="0.01">
+            <button onclick="salvarEdicao()"><i class="fa fa-save"></i> Salvar</button>
+        </div>
+    </div>
+
+    <script>
+        let itensLista = JSON.parse(localStorage.getItem('lista')) || [];
+        let indexEditando = null;
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function renderizarLista() {
+            const ul = document.getElementById('lista');
+            const totalDiv = document.getElementById('total');
+            const filtro = document.getElementById('filtro').value.toLowerCase();
+            ul.innerHTML = '';
+            let somaTotal = 0;
+
+            itensLista
+                .filter(item => item.nome.toLowerCase().includes(filtro))
+                .sort((a, b) => a.nome.localeCompare(b.nome))
+                .forEach((item, index) => {
+                    somaTotal += item.valor;
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span><strong>${item.nome}</strong> - ${formatarMoeda(item.valor)} <br><small>${item.dataHora}</small></span>
+                        <div class="item-buttons">
+                            <button onclick="abrirModal(${index})"><i class="fa fa-edit"></i> Editar</button>
+                            <button class="delete-button" onclick="removerItem(${index})"><i class="fa fa-trash"></i></button>
+                        </div>
+                    `;
+                    ul.appendChild(li);
+                });
+
+            totalDiv.textContent = `Total: ${formatarMoeda(somaTotal)}`;
+        }
+
+        function adicionarItem() {
+            const nomeInput = document.getElementById('nomeItem');
+            const valorInput = document.getElementById('valor');
+
+            let nome = nomeInput.value.trim();
+            let valorNum = parseFloat(valorInput.value);
+
+            if (!nome) {
+                alert('O nome do item não pode estar vazio.');
+                return;
+            }
+
+            if (isNaN(valorNum) || valorNum <= 0) {
+                alert('Digite um valor válido maior que zero.');
+                return;
+            }
+
+            const dataHora = new Date().toLocaleString();
+            itensLista.push({ nome, valor: valorNum, dataHora });
+            salvarLista();
+            renderizarLista();
+
+            nomeInput.value = '';
+            valorInput.value = '';
+        }
+
+        function abrirModal(index) {
+            indexEditando = index;
+            document.getElementById('editNome').value = itensLista[index].nome;
+            document.getElementById('editValor').value = itensLista[index].valor;
+            document.getElementById('modalEdicao').style.display = 'block';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalEdicao').style.display = 'none';
+        }
+
+        function salvarEdicao() {
+            const novoNome = document.getElementById('editNome').value.trim();
+            const novoValor = parseFloat(document.getElementById('editValor').value);
+
+            if (!novoNome || isNaN(novoValor) || novoValor <= 0) {
+                alert('Valores inválidos.');
+                return;
+            }
+
+            itensLista[indexEditando].nome = novoNome;
+            itensLista[indexEditando].valor = novoValor;
+            itensLista[indexEditando].dataHora = new Date().toLocaleString();
+            salvarLista();
+            renderizarLista();
+            fecharModal();
+        }
+
+        function removerItem(index) {
+            if (confirm('Tem certeza que deseja remover este item?')) {
+                itensLista.splice(index, 1);
+                salvarLista();
+                renderizarLista();
+            }
+        }
+
+        function salvarLista() {
+            localStorage.setItem('lista', JSON.stringify(itensLista));
+        }
+
+        function limparLista() {
+            if (confirm('Tem certeza que deseja limpar a lista?')) {
+                itensLista = [];
+                salvarLista();
+                renderizarLista();
+            }
+        }
+
+        function compartilharWhatsApp() {
+            if (itensLista.length === 0) {
+                alert('A lista está vazia.');
+                return;
+            }
+
+            let somaTotal = itensLista.reduce((acc, item) => acc + item.valor, 0);
+
+            const texto = itensLista
+                .map(item => `${item.nome} - ${formatarMoeda(item.valor)} (${item.dataHora})`)
+                .join('\n') + `\nTotal: ${formatarMoeda(somaTotal)}`;
+
+            const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+            window.open(url, '_blank');
+        }
+
+        renderizarLista();
+    </script>
+</body>
+</html>

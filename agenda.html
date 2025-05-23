@@ -26,16 +26,9 @@
     <form id="formAgenda" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <input type="hidden" id="editIndex">
 
-      <label for="cliente" class="sr-only">Nome do Cliente</label>
       <input type="text" id="cliente" placeholder="Nome do Cliente" required class="p-2 rounded bg-gray-700 text-white">
-
-      <label for="tatuagem" class="sr-only">Tatuagem</label>
       <input type="text" id="tatuagem" placeholder="Tatuagem" required class="p-2 rounded bg-gray-700 text-white">
-
-      <label for="valor" class="sr-only">Valor</label>
       <input type="number" id="valor" placeholder="Valor (R$)" required class="p-2 rounded bg-gray-700 text-white">
-
-      <label for="dataHora" class="sr-only">Data e Hora</label>
       <input type="datetime-local" id="dataHora" required class="p-2 rounded bg-gray-700 text-white">
 
       <button type="submit" class="bg-green-500 hover:bg-green-600 p-2 rounded font-semibold transition col-span-2 flex items-center justify-center gap-2">
@@ -58,16 +51,18 @@
       </div>
     </div>
 
-    <div class="mt-6 text-center">
-      <a href="https://wa.me/SEUNUMEROWHATSAPP" target="_blank" class="bg-green-500 hover:bg-green-600 p-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow">
-        <i data-lucide="phone"></i><span>Agende pelo WhatsApp</span>
-      </a>
-    </div>
-
     <div class="mt-4 text-center">
       <button onclick="exportarAgendamentos()" class="bg-blue-500 hover:bg-blue-600 p-2 rounded font-semibold transition flex items-center gap-2">
         <i data-lucide="download"></i><span>Exportar Agendamentos</span>
       </button>
+    </div>
+
+    <div id="whatsappSection" class="mt-6 hidden text-center">
+      <p class="mb-2">Deseja enviar este agendamento pelo WhatsApp?</p>
+      <button id="botaoWhatsapp" class="bg-green-500 hover:bg-green-600 p-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow">
+        <i data-lucide="send"></i> <span>Enviar pelo WhatsApp</span>
+      </button>
+      <p id="mensagemWhatsApp" class="text-sm text-gray-400 mt-2"></p>
     </div>
   </div>
 
@@ -82,6 +77,9 @@
     const totalMesEl = document.getElementById('totalMes');
     const voltarMesBtn = document.getElementById('voltarMes');
     const avancarMesBtn = document.getElementById('avancarMes');
+
+    const botaoWhatsapp = document.getElementById('botaoWhatsapp');
+    const mensagemWhatsApp = document.getElementById('mensagemWhatsApp');
 
     let agendamentos = JSON.parse(localStorage.getItem('agendamentos')) || [];
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -99,7 +97,6 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-
       const cliente = document.getElementById('cliente').value.trim();
       const tatuagem = document.getElementById('tatuagem').value.trim();
       const valor = parseFloat(document.getElementById('valor').value);
@@ -134,13 +131,15 @@
         agendamentos.push(novoAgendamento);
         alert('Agendamento salvo com sucesso!');
 
-        const mensagem = `Olá! Aqui é ${cliente}. Acabei de agendar minha tatuagem: ${tatuagem}, no valor de R$ ${valor.toFixed(2)}, para ${new Date(dataHora).toLocaleString('pt-BR')}.`;
-        const numeroWhatsApp = '5511954600110';
-        const linkWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+        mensagemWhatsApp.textContent = `Olá! Aqui é ${cliente}. Acabei de agendar minha tatuagem: ${tatuagem}, no valor de R$ ${valor.toFixed(2)}, para ${new Date(dataHora).toLocaleString('pt-BR')}.`;
 
-        if (confirm('Deseja enviar a confirmação do agendamento pelo WhatsApp?')) {
-          window.open(linkWhatsApp, '_blank');
-        }
+        botaoWhatsapp.onclick = function() {
+          const numeroWhatsApp = '5511954600110';
+          const linkWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagemWhatsApp.textContent)}`;
+          window.location.href = linkWhatsApp;
+        };
+
+        document.getElementById('whatsappSection').classList.remove('hidden');
       }
 
       agendamentos.sort((a, b) => new Date(a.dataHora) - new Date(b.dataHora));
@@ -271,6 +270,7 @@
         const item = criarItemLista(ag, i);
         lista.appendChild(item);
       });
+
       lucide.createIcons();
 
       if (agendamentosDoDia.length === 0) {

@@ -5,39 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agenda do Tatuador</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-6">
-
   <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-4xl">
     <h1 class="text-4xl font-extrabold mb-4 text-center text-red-400">Agenda do Tatuador - <span id="mesAtual"></span></h1>
 
     <div class="mb-4 flex gap-2">
-      <button id="voltarMes" class="bg-gray-700 hover:bg-gray-600 p-2 rounded transition">⬅️ Mês anterior</button>
-      <button id="avancarMes" class="bg-gray-700 hover:bg-gray-600 p-2 rounded transition">Mês seguinte ➡️</button>
+      <button id="voltarMes" class="bg-gray-700 hover:bg-gray-600 p-2 rounded transition flex items-center gap-1">
+        <i data-lucide="chevron-left"></i><span>Mês anterior</span>
+      </button>
+      <button id="avancarMes" class="bg-gray-700 hover:bg-gray-600 p-2 rounded transition flex items-center gap-1">
+        <span>Mês seguinte</span><i data-lucide="chevron-right"></i>
+      </button>
     </div>
 
-    <input type="text" id="filtroCliente" placeholder="Buscar cliente..." class="p-2 rounded bg-gray-700 mb-4 w-full text-white">
+    <input type="text" id="filtroCliente" placeholder="Buscar cliente..." class="p-2 rounded bg-gray-700 mb-2 w-full text-white">
+    <button onclick="filtroCliente.value=''; renderizarAgendamentos();" class="text-sm text-gray-300 hover:underline mb-4">Limpar filtro</button>
 
     <form id="formAgenda" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <input type="hidden" id="editIndex">
+
+      <label for="cliente" class="sr-only">Nome do Cliente</label>
       <input type="text" id="cliente" placeholder="Nome do Cliente" required class="p-2 rounded bg-gray-700 text-white">
+
+      <label for="tatuagem" class="sr-only">Tatuagem</label>
       <input type="text" id="tatuagem" placeholder="Tatuagem" required class="p-2 rounded bg-gray-700 text-white">
+
+      <label for="valor" class="sr-only">Valor</label>
       <input type="number" id="valor" placeholder="Valor (R$)" required class="p-2 rounded bg-gray-700 text-white">
+
+      <label for="dataHora" class="sr-only">Data e Hora</label>
       <input type="datetime-local" id="dataHora" required class="p-2 rounded bg-gray-700 text-white">
+
       <button type="submit" class="bg-green-500 hover:bg-green-600 p-2 rounded font-semibold transition col-span-2 flex items-center justify-center gap-2">
-        <span>&#128190;</span> <span>Salvar Agendamento</span>
+        <i data-lucide="save"></i><span>Salvar Agendamento</span>
       </button>
     </form>
 
-    <h2 class="text-2xl font-semibold mb-2">Tatuagens Agendadas</h2>
+    <h2 class="text-2xl font-semibold mb-1">Tatuagens Agendadas</h2>
+    <p id="contagemResultados" class="text-sm text-gray-400 mb-2"></p>
     <ul id="listaAgendamentos" class="space-y-2 mb-6"></ul>
 
     <h2 class="text-2xl font-semibold mb-2">Calendário do Mês</h2>
     <div id="calendario" class="grid grid-cols-7 gap-2 text-center"></div>
     <p id="totalMes" class="mt-4 text-lg font-semibold text-green-400">Total do mês: R$ 0,00</p>
 
-    <div class="mt-6 hidden md:block">
-      <iframe src="https://www.instagram.com/p/EXEMPLOEMBED/embed" width="400" height="480" frameborder="0" scrolling="no" allowtransparency="true" class="rounded-xl shadow"></iframe>
+    <div class="mt-6 hidden sm:block">
+      <iframe src="https://www.instagram.com/p/EXEMPLOEMBED/embed" width="100%" height="480" frameborder="0" scrolling="no" allowtransparency="true" class="rounded-xl shadow"></iframe>
       <div class="mt-2 text-center">
         <a href="https://www.instagram.com/seu_perfil/" target="_blank" class="text-blue-400 hover:underline">Siga-nos no Instagram</a>
       </div>
@@ -45,12 +60,20 @@
 
     <div class="mt-6 text-center">
       <a href="https://wa.me/SEUNUMEROWHATSAPP" target="_blank" class="bg-green-500 hover:bg-green-600 p-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow">
-        <span>📱</span> <span>Agende pelo WhatsApp</span>
+        <i data-lucide="phone"></i><span>Agende pelo WhatsApp</span>
       </a>
+    </div>
+
+    <div class="mt-4 text-center">
+      <button onclick="exportarAgendamentos()" class="bg-blue-500 hover:bg-blue-600 p-2 rounded font-semibold transition flex items-center gap-2">
+        <i data-lucide="download"></i><span>Exportar Agendamentos</span>
+      </button>
     </div>
   </div>
 
   <script>
+    lucide.createIcons();
+
     const form = document.getElementById('formAgenda');
     const lista = document.getElementById('listaAgendamentos');
     const mesAtualEl = document.getElementById('mesAtual');
@@ -76,34 +99,77 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+
       const cliente = document.getElementById('cliente').value.trim();
       const tatuagem = document.getElementById('tatuagem').value.trim();
       const valor = parseFloat(document.getElementById('valor').value);
       const dataHora = document.getElementById('dataHora').value;
       const editIndex = document.getElementById('editIndex').value;
 
-      if (cliente && tatuagem && valor && dataHora) {
-        const novoAgendamento = {
-          cliente,
-          tatuagem,
-          valor: valor.toFixed(2),
-          dataHora: new Date(dataHora)
-        };
-
-        if (editIndex !== '') {
-          agendamentos[editIndex] = novoAgendamento;
-          document.getElementById('editIndex').value = '';
-        } else {
-          agendamentos.push(novoAgendamento);
-        }
-
-        agendamentos.sort((a, b) => new Date(a.dataHora) - new Date(b.dataHora));
-        salvarEAtualizar();
-        form.reset();
+      if (!cliente || !tatuagem || !valor || !dataHora) {
+        alert('Todos os campos são obrigatórios.');
+        return;
       }
+      if (valor <= 0) {
+        alert('O valor deve ser maior que zero.');
+        return;
+      }
+      if (new Date(dataHora) < new Date()) {
+        alert('Não é possível agendar para o passado.');
+        return;
+      }
+
+      const novoAgendamento = {
+        cliente,
+        tatuagem,
+        valor: valor.toFixed(2),
+        dataHora: new Date(dataHora)
+      };
+
+      if (editIndex !== '') {
+        agendamentos[editIndex] = novoAgendamento;
+        document.getElementById('editIndex').value = '';
+        alert('Agendamento atualizado com sucesso!');
+      } else {
+        agendamentos.push(novoAgendamento);
+        alert('Agendamento salvo com sucesso!');
+
+        const mensagem = `Olá! Aqui é ${cliente}. Acabei de agendar minha tatuagem: ${tatuagem}, no valor de R$ ${valor.toFixed(2)}, para ${new Date(dataHora).toLocaleString('pt-BR')}.`;
+        const numeroWhatsApp = '5511954600110';
+        const linkWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+
+        if (confirm('Deseja enviar a confirmação do agendamento pelo WhatsApp?')) {
+          window.open(linkWhatsApp, '_blank');
+        }
+      }
+
+      agendamentos.sort((a, b) => new Date(a.dataHora) - new Date(b.dataHora));
+      salvarEAtualizar();
+      form.reset();
     });
 
     filtroCliente.addEventListener('input', renderizarAgendamentos);
+
+    function criarItemLista(agendamento, index) {
+      const li = document.createElement('li');
+      li.className = 'bg-gray-700 p-3 rounded flex justify-between items-center';
+      li.innerHTML = `
+        <div>
+          <p class="font-semibold text-lg">${agendamento.cliente}</p>
+          <p>${agendamento.tatuagem} - R$ ${agendamento.valor}</p>
+          <p class="text-sm text-gray-300">${new Date(agendamento.dataHora).toLocaleString('pt-BR')}</p>
+        </div>
+        <div class="space-x-2 flex">
+          <button onclick="editarAgendamento(${index})" class="text-yellow-400 hover:text-yellow-600 transition" title="Editar" aria-label="Editar">
+            <i data-lucide="edit"></i>
+          </button>
+          <button onclick="removerAgendamento(${index})" class="text-red-400 hover:text-red-600 transition" title="Remover" aria-label="Remover">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      `;
+      return li;
+    }
 
     function renderizarAgendamentos() {
       const mesAtual = dataReferencia.getMonth();
@@ -112,33 +178,27 @@
 
       lista.innerHTML = '';
       const filtro = filtroCliente.value.toLowerCase();
-      agendamentos
+
+      const agFiltrados = agendamentos
         .filter(a => new Date(a.dataHora).getMonth() === mesAtual && new Date(a.dataHora).getFullYear() === anoAtual)
-        .filter(a => a.cliente.toLowerCase().includes(filtro))
-        .forEach((agendamento, index) => {
-          const li = document.createElement('li');
-          li.className = 'bg-gray-700 p-3 rounded flex justify-between items-center';
-          li.innerHTML = `
-            <div>
-              <p class="font-semibold text-lg">${agendamento.cliente}</p>
-              <p>${agendamento.tatuagem} - R$ ${agendamento.valor}</p>
-              <p class="text-sm text-gray-300">${new Date(agendamento.dataHora).toLocaleString('pt-BR')}</p>
-            </div>
-            <div class="space-x-2 flex">
-              <button onclick="editarAgendamento(${index})" class="text-yellow-400 hover:text-yellow-600 transition" title="Editar">✏️</button>
-              <button onclick="removerAgendamento(${index})" class="text-red-400 hover:text-red-600 transition" title="Remover">🗑️</button>
-            </div>
-          `;
-          lista.appendChild(li);
-        });
+        .filter(a => a.cliente.toLowerCase().includes(filtro));
+
+      document.getElementById('contagemResultados').textContent = `${agFiltrados.length} agendamento(s) encontrado(s)`;
+
+      agFiltrados.forEach((ag, i) => {
+        const item = criarItemLista(ag, i);
+        lista.appendChild(item);
+      });
 
       renderizarCalendario();
+      lucide.createIcons();
     }
 
     function removerAgendamento(index) {
       if (confirm('Tem certeza que deseja remover este agendamento?')) {
         agendamentos.splice(index, 1);
         salvarEAtualizar();
+        alert('Agendamento removido com sucesso!');
       }
     }
 
@@ -147,7 +207,7 @@
       document.getElementById('cliente').value = ag.cliente;
       document.getElementById('tatuagem').value = ag.tatuagem;
       document.getElementById('valor').value = ag.valor;
-      document.getElementById('dataHora').value = new Date(ag.dataHora).toISOString().slice(0,16);
+      document.getElementById('dataHora').value = new Date(ag.dataHora).toISOString().slice(0, 16);
       document.getElementById('editIndex').value = index;
     }
 
@@ -160,21 +220,31 @@
       const mesAtual = dataReferencia.getMonth();
       const anoAtual = dataReferencia.getFullYear();
       calendario.innerHTML = '';
+
       const primeiroDia = new Date(anoAtual, mesAtual, 1);
       const ultimoDia = new Date(anoAtual, mesAtual + 1, 0);
       const diasNoMes = ultimoDia.getDate();
       const diaSemanaInicio = primeiroDia.getDay();
+
       const diasComTatuagem = agendamentos
         .filter(a => new Date(a.dataHora).getMonth() === mesAtual && new Date(a.dataHora).getFullYear() === anoAtual)
         .map(a => new Date(a.dataHora).getDate());
 
+      const hoje = new Date();
+
       for (let i = 0; i < diaSemanaInicio; i++) {
-        calendario.innerHTML += `<div></div>`;
+        const vazio = document.createElement('div');
+        calendario.appendChild(vazio);
       }
 
       for (let dia = 1; dia <= diasNoMes; dia++) {
         const marcado = diasComTatuagem.includes(dia);
-        calendario.innerHTML += `<div class="p-2 rounded shadow ${marcado ? 'bg-red-500 text-white font-bold' : 'bg-gray-600'} cursor-pointer" onclick="filtrarPorDia(${dia})">${dia}</div>`;
+        const ehHoje = hoje.getDate() === dia && hoje.getMonth() === mesAtual && hoje.getFullYear() === anoAtual;
+        const div = document.createElement('div');
+        div.className = `p-2 rounded shadow aspect-square text-sm flex items-center justify-center cursor-pointer ${marcado ? 'bg-red-500 text-white font-bold' : 'bg-gray-600'} ${ehHoje ? 'ring-2 ring-yellow-400' : ''}`;
+        div.textContent = dia;
+        div.onclick = () => filtrarPorDia(dia);
+        calendario.appendChild(div);
       }
 
       const totalMes = agendamentos
@@ -196,27 +266,24 @@
         return data >= dataInicio && data <= dataFim;
       });
 
+      lista.innerHTML = '';
+      agendamentosDoDia.forEach((ag, i) => {
+        const item = criarItemLista(ag, i);
+        lista.appendChild(item);
+      });
+      lucide.createIcons();
+
       if (agendamentosDoDia.length === 0) {
         alert(`Nenhum agendamento encontrado para ${dia}/${mesAtual + 1}/${anoAtual}`);
-      } else {
-        lista.innerHTML = '';
-        agendamentosDoDia.forEach((agendamento, index) => {
-          const li = document.createElement('li');
-          li.className = 'bg-gray-700 p-3 rounded flex justify-between items-center';
-          li.innerHTML = `
-            <div>
-              <p class="font-semibold text-lg">${agendamento.cliente}</p>
-              <p>${agendamento.tatuagem} - R$ ${agendamento.valor}</p>
-              <p class="text-sm text-gray-300">${new Date(agendamento.dataHora).toLocaleString('pt-BR')}</p>
-            </div>
-            <div class="space-x-2 flex">
-              <button onclick="editarAgendamento(${index})" class="text-yellow-400 hover:text-yellow-600 transition" title="Editar">✏️</button>
-              <button onclick="removerAgendamento(${index})" class="text-red-400 hover:text-red-600 transition" title="Remover">🗑️</button>
-            </div>
-          `;
-          lista.appendChild(li);
-        });
       }
+    }
+
+    function exportarAgendamentos() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(agendamentos, null, 2));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", "agendamentos.json");
+      dlAnchorElem.click();
     }
 
     renderizarAgendamentos();

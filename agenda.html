@@ -51,18 +51,16 @@
       </div>
     </div>
 
+    <div class="mt-6 text-center">
+      <a href="https://wa.me/5511954600110" target="_blank" class="bg-green-500 hover:bg-green-600 p-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow">
+        <i data-lucide="phone"></i><span>Agende pelo WhatsApp</span>
+      </a>
+    </div>
+
     <div class="mt-4 text-center">
       <button onclick="exportarAgendamentos()" class="bg-blue-500 hover:bg-blue-600 p-2 rounded font-semibold transition flex items-center gap-2">
         <i data-lucide="download"></i><span>Exportar Agendamentos</span>
       </button>
-    </div>
-
-    <div id="whatsappSection" class="mt-6 hidden text-center">
-      <p class="mb-2">Deseja enviar este agendamento pelo WhatsApp?</p>
-      <button id="botaoWhatsapp" class="bg-green-500 hover:bg-green-600 p-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow">
-        <i data-lucide="send"></i> <span>Enviar pelo WhatsApp</span>
-      </button>
-      <p id="mensagemWhatsApp" class="text-sm text-gray-400 mt-2"></p>
     </div>
   </div>
 
@@ -77,9 +75,6 @@
     const totalMesEl = document.getElementById('totalMes');
     const voltarMesBtn = document.getElementById('voltarMes');
     const avancarMesBtn = document.getElementById('avancarMes');
-
-    const botaoWhatsapp = document.getElementById('botaoWhatsapp');
-    const mensagemWhatsApp = document.getElementById('mensagemWhatsApp');
 
     let agendamentos = JSON.parse(localStorage.getItem('agendamentos')) || [];
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -97,6 +92,7 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+
       const cliente = document.getElementById('cliente').value.trim();
       const tatuagem = document.getElementById('tatuagem').value.trim();
       const valor = parseFloat(document.getElementById('valor').value);
@@ -131,15 +127,12 @@
         agendamentos.push(novoAgendamento);
         alert('Agendamento salvo com sucesso!');
 
-        mensagemWhatsApp.textContent = `Olá! Aqui é ${cliente}. Acabei de agendar minha tatuagem: ${tatuagem}, no valor de R$ ${valor.toFixed(2)}, para ${new Date(dataHora).toLocaleString('pt-BR')}.`;
+        const mensagem = `Novo agendamento!\nCliente: ${cliente}\nTatuagem: ${tatuagem}\nValor: R$ ${valor.toFixed(2)}\nData: ${new Date(dataHora).toLocaleString('pt-BR')}`;
+        const numeroWhatsApp = '5511954600110';
+        const linkWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
 
-        botaoWhatsapp.onclick = function() {
-          const numeroWhatsApp = '5511954600110';
-          const linkWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagemWhatsApp.textContent)}`;
-          window.location.href = linkWhatsApp;
-        };
-
-        document.getElementById('whatsappSection').classList.remove('hidden');
+        // Envia automaticamente ao seu número
+        window.open(linkWhatsApp, '_blank');
       }
 
       agendamentos.sort((a, b) => new Date(a.dataHora) - new Date(b.dataHora));
@@ -159,10 +152,10 @@
           <p class="text-sm text-gray-300">${new Date(agendamento.dataHora).toLocaleString('pt-BR')}</p>
         </div>
         <div class="space-x-2 flex">
-          <button onclick="editarAgendamento(${index})" class="text-yellow-400 hover:text-yellow-600 transition" title="Editar" aria-label="Editar">
+          <button onclick="editarAgendamento(${index})" class="text-yellow-400 hover:text-yellow-600 transition" title="Editar">
             <i data-lucide="edit"></i>
           </button>
-          <button onclick="removerAgendamento(${index})" class="text-red-400 hover:text-red-600 transition" title="Remover" aria-label="Remover">
+          <button onclick="removerAgendamento(${index})" class="text-red-400 hover:text-red-600 transition" title="Remover">
             <i data-lucide="trash-2"></i>
           </button>
         </div>
@@ -270,7 +263,6 @@
         const item = criarItemLista(ag, i);
         lista.appendChild(item);
       });
-
       lucide.createIcons();
 
       if (agendamentosDoDia.length === 0) {
